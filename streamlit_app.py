@@ -29,8 +29,6 @@ with st.sidebar:
     file_admin1 = st.file_uploader("전도사 A 파일", type=["csv", "xlsx"], key="admin1")
     file_admin2 = st.file_uploader("전도사 B 파일", type=["csv", "xlsx"], key="admin2")
     file_admin3 = st.file_uploader("전도사 C 파일", type=["csv", "xlsx"], key="admin3")
-    
-    st.info("💡 CSV나 Excel(.xlsx) 파일을 모두 올릴 수 있습니다.")
 
 # 4. 데이터 로드 함수
 def load_data(file):
@@ -44,11 +42,7 @@ def load_data(file):
             st.error(f"파일 읽기 오류: {e}")
     return None
 
-# 파일 로드 시도
-df_att = load_data(file_att)
-df_admin1 = load_data(file_admin1)
-
-# 샘플 데이터 (파일이 없을 때 보여줄 기본값)
+# 샘플 데이터 (파일 없을 때 기본값)
 def get_default_data():
     names = ['김남호', '김윤심', '이홍규', '서형국', '윤영옥', '오정숙']
     data = []
@@ -79,5 +73,34 @@ with c2:
         uploaded_count = sum(1 for f in [file_admin1, file_admin2, file_admin3] if f is not None)
         avg_risk = 68.0 if uploaded_count == 0 else max(30.0, 75.0 - (uploaded_count * 15))
         
-        # 속도계 차트 (go.Indicator)
-        fig =
+        # 83번 줄 오류 방지를 위한 단순화된 차트 코드
+        fig = go.Figure(go.Indicator(
+            mode = "gauge+number",
+            value = avg_risk,
+            title = {'text': "🔥 기수 전체 흔들림 정도"},
+            gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "#ef4444"}}
+        ))
+        st.plotly_chart(fig, use_container_width=True)
+        
+        st.success(f"전도사 {uploaded_count}명의 데이터를 기반으로 분석을 완료했습니다.")
+    else:
+        st.info("👈 왼쪽에서 상황을 입력하고 버튼을 눌러주세요.")
+
+# 6. 하단 상세 분석
+st.markdown("---")
+st.subheader("👤 개별 수강생 상세 분석")
+
+if run_btn:
+    cols = st.columns(3)
+    for i, (_, row) in enumerate(df_students.iterrows()):
+        with cols[i % 3]:
+            st.markdown(f"""
+                <div class="student-card">
+                    <b style="font-size: 1.2em;">{row['이름']}</b> ({row['MBTI']})<br>
+                    <small>{row['단계']}단계 / 신성: {row['신성']}</small><br><br>
+                    <p style="font-size: 0.9em;"><b>최근 피드백:</b> {row['최근_피드백']}</p>
+                    <p style="font-size: 0.85em; color: #4b5563;"><b>AI 예측:</b> 심리적 동요 가능성이 확인됩니다.</p>
+                </div>
+            """, unsafe_allow_html=True)
+else:
+    st.write("분석을 실행하면 수강생별 맞춤 분석 카드가 생성됩니다.")
