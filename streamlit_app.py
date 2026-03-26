@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go  # 속도계 차트를 위해 반드시 필요함
+import plotly.graph_objects as go
 
 # 1. 페이지 설정
 st.set_page_config(page_title="Center Risk Simulator", page_icon="🏛️", layout="wide")
 
-# 2. 디자인 테마 (CSS)
+# 2. 디자인 테마
 st.markdown("""
     <style>
     .stApp { background-color: #f8fafc; }
@@ -18,7 +18,7 @@ st.markdown("""
 st.title("🏛️ 센터 위기 관리 전략 시뮬레이터")
 st.markdown("---")
 
-# 3. 사이드바: 데이터 주입 (CSV 및 Excel 지원, 전도사 3명)
+# 3. 사이드바: 데이터 주입
 with st.sidebar:
     st.header("📂 데이터 주입")
     st.subheader("1. 출석부 데이터")
@@ -39,12 +39,16 @@ def load_data(file):
             if file.name.endswith('.csv'):
                 return pd.read_csv(file)
             else:
-                return pd.read_excel(file)
+                return pd.read_excel(file, engine='openpyxl')
         except Exception as e:
             st.error(f"파일 읽기 오류: {e}")
     return None
 
-# 샘플 데이터 (파일이 없을 때 보여줄 기본 6인)
+# 파일 로드 시도
+df_att = load_data(file_att)
+df_admin1 = load_data(file_admin1)
+
+# 샘플 데이터 (파일이 없을 때 보여줄 기본값)
 def get_default_data():
     names = ['김남호', '김윤심', '이홍규', '서형국', '윤영옥', '오정숙']
     data = []
@@ -60,7 +64,7 @@ def get_default_data():
 
 df_students = get_default_data()
 
-# 5. 메인 화면: 상황 및 전략 입력
+# 5. 메인 화면
 c1, c2 = st.columns([1, 1.5])
 
 with c1:
@@ -72,23 +76,8 @@ with c1:
 with c2:
     st.subheader("📊 기수 전반 위기 리포트")
     if run_btn:
-        # 가상 위기 점수 계산 (파일 업로드 수에 따라 변동)
         uploaded_count = sum(1 for f in [file_admin1, file_admin2, file_admin3] if f is not None)
         avg_risk = 68.0 if uploaded_count == 0 else max(30.0, 75.0 - (uploaded_count * 15))
         
-        # 속도계 차트 (plotly.graph_objects 사용)
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = avg_risk,
-            domain = {'x': [0, 1], 'y': [0, 1]},
-            title = {'text': "🔥 기수 전체 흔들림 정도", 'font': {'size': 20}},
-            gauge = {
-                'axis': {'range': [None, 100], 'tickwidth': 1},
-                'bar': {'color': "#ef4444"},
-                'bgcolor': "white",
-                'borderwidth': 2,
-                'bordercolor': "#cbd5e1",
-                'steps': [
-                    {'range': [0, 40], 'color': '#f1f5f9'},
-                    {'range': [40, 75], 'color': '#fde68a'},
-                    {'range': [75,
+        # 속도계 차트 (go.Indicator)
+        fig =
