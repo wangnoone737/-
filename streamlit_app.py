@@ -9,122 +9,121 @@ st.set_page_config(page_title="AI Strategic Advisor Pro", page_icon="🧠", layo
 class StrategicEngine:
     @staticmethod
     def text_mining_sentiment(text):
-        """피드백 텍스트 마이닝: 키워드 기반 감성 분석"""
-        negative_words = ['피곤', '졸음', '의심', '가족', '바쁨', '힘듦', '갈등', '부정', '반대']
+        negative_words = ['피곤', '졸음', '의심', '가족', '바쁨', '힘듦', '갈등', '부정', '반대', '유튜브']
         positive_words = ['은혜', '열정', '감사', '확신', '기쁨', '성장', '집중']
-        
         score = 0
+        text_str = str(text)
         for word in negative_words:
-            if word in str(text): score += 15
+            if word in text_str: score += 15
         for word in positive_words:
-            if word in str(text): score -= 10
+            if word in text_str: score -= 10
         return score
 
     @staticmethod
-    def calculate_match(student, admin):
-        """수강생-전도사 매칭 궁합 분석"""
+    def calculate_match(student_row, admin_info):
         match_score = 0
-        s_mbti = str(student.get('MBTI', '')).upper()
-        a_mbti = str(admin.get('mbti', '')).upper()
+        s_mbti = str(student_row.get('MBTI', '')).upper()
+        a_mbti = str(admin_info.get('mbti', '')).upper()
         
-        # 성격 보완성 체크 (E-I 보완 또는 T-F 보완 등)
         if s_mbti and a_mbti:
             if s_mbti[0] != a_mbti[0]: match_score += 10 # 외향-내향 보완
-            if s_mbti[2] == a_mbti[2]: match_score += 15 # 사고-사고 혹은 감정-감정 공감
-            
-        # 애니어그램 기반 궁합 (단순 예시 로직)
-        if student.get('애니어그램') == admin.get('ennea'): match_score += 20
-            
+            if s_mbti[2] == a_mbti[2]: match_score += 15 # 사고-사고/감정-감정 공감
+        if str(student_row.get('애니어그램')) == str(admin_info.get('ennea')):
+            match_score += 20
         return match_score
 
-# 3. 사이드바: 전도사 역량 입력 (2번 요청사항)
+# 3. 사이드바: 파일 업로드 및 전도사 정보 입력 (통합형)
 with st.sidebar:
-    st.header("👤 전도사(관리자) 역량 설정")
-    admin_data = {}
-    cols_a = st.columns(2)
-    with cols_a[0]:
-        admin_data['mbti'] = st.selectbox("전도사 MBTI", ["ISTJ", "ENFP", "ENTJ", "ISFJ", "INFJ", "ESTP", "기타"])
-        admin_data['ennea'] = st.number_input("전도사 애니어그램", 1, 9, 1)
-    with cols_a[1]:
-        admin_data['gender'] = st.radio("성별", ["남", "여"])
-        admin_data['blood'] = st.selectbox("혈액형", ["A", "B", "O", "AB"])
+    st.header("📂 데이터 주입 및 관리자 설정")
+    
+    st.subheader("1. 공통 출석부")
+    file_att = st.file_uploader("출석부 파일", type=["csv", "xlsx"], key="att")
     
     st.markdown("---")
-    st.header("📂 데이터 주입")
-    file_att = st.file_uploader("수강생 데이터(Excel)", type=["xlsx"])
+    
+    # 전도사별 섹션 (A, B, C)
+    admins = []
+    for label in ["A", "B", "C"]:
+        with st.expander(f"👤 전도사 {label} 정보 및 파일", expanded=False):
+            file = st.file_uploader(f"전도사 {label}반 파일", type=["csv", "xlsx"], key=f"file_{label}")
+            mbti = st.selectbox(f"{label} MBTI", ["ISTJ", "ENFP", "ENTJ", "ISFJ", "INFJ", "ESTP", "기타"], key=f"mbti_{label}")
+            ennea = st.number_input(f"{label} 애니어그램", 1, 9, 1, key=f"ennea_{label}")
+            gender = st.radio(f"{label} 성별", ["남", "여"], key=f"gen_{label}")
+            blood = st.selectbox(f"{label} 혈액형", ["A", "B", "O", "AB"], key=f"blood_{label}")
+            admins.append({'label': label, 'file': file, 'mbti': mbti, 'ennea': ennea, 'gender': gender, 'blood': blood})
 
-# 4. 메인 화면 및 전략 입력
+# 4. 메인 화면
 st.title("🏛️ AI 전략 시뮬레이션 : 관계 역동 모델")
 
 c1, c2 = st.columns([1, 1.5])
 with c1:
-    st.subheader("🎯 상황 및 대응 전략")
-    situation = st.text_area("🌐 발생 상황", height=100)
-    plan = st.text_area("🛡️ 대응 계획", height=100)
+    st.subheader("🎯 시나리오 설정")
+    situation = st.text_area("🌐 발생 상황", placeholder="예: 비판 영상 공유 등", height=100)
+    plan = st.text_area("🛡️ 대응 전략", placeholder="예: 개별 면담 및 교육 계획", height=100)
     run_btn = st.button("전략 시뮬레이션 가동 🚀", use_container_width=True)
 
-# 5. 분석 실행 로직
-if run_btn and file_att:
-    df = pd.read_excel(file_att)
+# 5. 데이터 처리 및 분석
+if run_btn:
+    all_data = []
     
-    # [1] 피드백 텍스트 마이닝 적용
-    df['sentiment_risk'] = df['피드백'].apply(StrategicEngine.text_mining_sentiment)
-    
-    # [2] 전도사 매칭 점수 산출
-    df['match_score'] = df.apply(lambda x: StrategicEngine.calculate_match(x, admin_data), axis=1)
-    
-    # [3] 위기 전이 지수 산출 (영향력 모델)
-    # E형이면서 고단계인 사람을 인플루언서로 가정
-    df['influencer'] = df.apply(lambda x: 1.5 if 'E' in str(x['MBTI']) and x['단계'] >= 4 else 1.0, axis=1)
-    
-    # 최종 위기 점수 계산
-    def finalize_score(row):
-        score = 50 + row['sentiment_risk'] - (row['match_score'] * 0.5)
-        if "비판" in situation and row['단계'] >= 4: score += 20
-        return min(max(score, 0), 100)
+    # 각 전도사별 파일 로드 및 해당 전도사 정보 매칭
+    for admin in admins:
+        if admin['file'] is not None:
+            try:
+                temp_df = pd.read_excel(admin['file']) if admin['file'].name.endswith('.xlsx') else pd.read_csv(admin['file'])
+                # 각 행에 담당 전도사 정보 부착
+                for _, row in temp_df.iterrows():
+                    student_dict = row.to_dict()
+                    student_dict['담당전도사'] = admin['label']
+                    
+                    # 텍스트 마이닝 및 매칭 점수 계산
+                    sentiment = StrategicEngine.text_mining_sentiment(student_dict.get('피드백', ''))
+                    match = StrategicEngine.calculate_match(student_dict, admin)
+                    
+                    # 영향력 점수 (E형/고단계)
+                    inf_power = 1.5 if 'E' in str(student_dict.get('MBTI', '')).upper() and int(student_dict.get('단계', 1)) >= 4 else 1.0
+                    
+                    # 위기 점수 합산
+                    score = 50 + sentiment - (match * 0.4)
+                    if "비판" in situation and int(student_dict.get('단계', 1)) >= 4: score += 20
+                    
+                    student_dict['total_risk'] = min(max(score, 0), 100)
+                    student_dict['match_score'] = match
+                    student_dict['inf_power'] = inf_power
+                    all_data.append(student_dict)
+            except Exception as e:
+                st.error(f"전도사 {admin['label']} 파일 오류: {e}")
 
-    df['total_risk'] = df.apply(finalize_score, axis=1)
-    
-    # 전체 리포트 출력
-    with c2:
-        avg_risk = df['total_risk'].mean()
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = 100 - avg_risk,
-            title = {'text': "🛡️ 전략 실행 후 예상 안전도"},
-            gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "#22c55e"}}
-        ))
-        st.plotly_chart(fig, use_container_width=True)
-
-    # 6. 결과 카드 출력 (상세 제언)
-    st.markdown("---")
-    st.subheader("👤 수강생별 정밀 시뮬레이션 결과")
-    
-    cols = st.columns(3)
-    for i, (_, row) in enumerate(df.iterrows()):
-        risk = row['total_risk']
-        match = row['match_score']
+    if all_data:
+        df = pd.DataFrame(all_data)
         
-        with cols[i % 3]:
-            # 위험도에 따른 색상
-            color = "#ef4444" if risk > 70 else "#3b82f6"
-            inf_msg = "⭐ 기수 내 영향력 높음 (흔들릴 시 전염 주의)" if row['influencer'] > 1 else ""
-            
-            st.markdown(f"""
-                <div style="background: white; border-top: 6px solid {color}; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;">
-                    <h3 style="margin:0;">{row['이름']} <small style="color:gray;">({row['MBTI']})</small></h3>
-                    <p style="color:orange; font-weight:bold; font-size:0.8em;">{inf_msg}</p>
-                    <hr>
-                    <p><b>🔍 텍스트 분석 결과:</b> 피드백 내 부정 키워드로 인해 위기 가중치 반영됨.</p>
-                    <p><b>🤝 전도사 매칭도:</b> {match}점 (성향 궁합에 따른 시너지 분석)</p>
-                    <div style="background:#fef2f2; padding:10px; border-radius:8px; margin-top:10px;">
-                        <b>💡 AI 전략 제언:</b><br>
-                        {row['이름']} 수강생은 현재 {admin_data['mbti']} 전도사님과 { '보완적' if match > 15 else '다소 평이한' } 관계입니다. 
-                        전략 실행 시 <b>{'1:1 감성 접근' if 'F' in str(row['MBTI']) else '논리적 자료 제시'}</b>를 병행하십시오.
-                    </div>
-                    <div style="text-align:right; margin-top:10px; font-weight:bold; color:{color};">최종 위기 지수: {risk}점</div>
-                </div>
-            """, unsafe_allow_html=True)
+        with c2:
+            avg_safety = 100 - df['total_risk'].mean()
+            fig = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = avg_safety,
+                title = {'text': "🛡️ 예상 기수 안전도"},
+                gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "#22c55e"}}
+            ))
+            st.plotly_chart(fig, use_container_width=True)
 
-elif run_btn:
-    st.error("파일을 업로드해주세요.")
+        st.markdown("---")
+        st.subheader("👤 수강생별 정밀 진단")
+        cols = st.columns(3)
+        for i, row in df.iterrows():
+            risk = row['total_risk']
+            color = "#ef4444" if risk > 70 else "#3b82f6"
+            inf_mark = "⭐ 영향력 높음" if row['inf_power'] > 1 else ""
+            
+            with cols[i % 3]:
+                st.markdown(f"""
+                    <div style="background:white; border-top:6px solid {color}; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:15px;">
+                        <h4 style="margin:0;">{row.get('이름','-')} <small>(담당: {row['담당전도사']})</small></h4>
+                        <p style="color:orange; font-size:0.8em; font-weight:bold; margin:5px 0;">{inf_mark}</p>
+                        <p style="font-size:0.85em;"><b>성향:</b> {row.get('MBTI','-')} / {row.get('단계','-')}단</p>
+                        <p style="font-size:0.85em; background:#f1f5f9; padding:5px;"><b>AI 분석:</b> {row.get('이름')}님은 담당 전도사와 { '찰떡궁합' if row['match_score'] > 20 else '보통의 관계' }이며, 피드백 분석 결과 위기 동요도가 {'높음' if risk > 60 else '안정적'}입니다.</p>
+                        <div style="text-align:right; font-weight:bold; color:{color};">위기 지수: {risk}점</div>
+                    </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.warning("전도사 반 파일을 업로드하고 버튼을 눌러주세요.")
