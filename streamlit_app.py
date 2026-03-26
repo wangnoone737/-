@@ -2,97 +2,95 @@ import streamlit as st
 import pandas as pd
 import io
 
-# [디자인 개선] 화면 중앙 정렬 및 가독성 향상을 위한 CSS 주입
-st.set_page_config(page_title="수강생 관리 시스템 v13.0", layout="wide")
+# 1. 시각적 레이아웃 설정 (NanoBanana 테마 적용)
+st.set_page_config(page_title="Data Analysis Dashboard", layout="wide")
+
 st.markdown("""
     <style>
-    .reportview-container .main .block-container { max-width: 1200px; padding-top: 2rem; }
-    .stTable { width: 100%; }
-    .css-1n76uvr { width: 100%; } /* 데이터프레임 꽉 차게 */
-    .analysis-card { background: #ffffff; border-left: 5px solid #007bff; padding: 15px; border-radius: 5px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    /* 메인 배경 및 폰트 설정 */
+    .stApp { background-color: #F0F2F6; }
+    section[data-testid="stSidebar"] { background-color: #FFFFFF !important; width: 400px !important; }
+    
+    /* 카드형 UI 스타일 */
+    .stat-card {
+        background-color: white; padding: 20px; border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;
+    }
+    .header-style { color: #1E1E1E; font-weight: 800; font-size: 1.5rem; }
     </style>
     """, unsafe_allow_html=True)
 
-# [데이터 파싱 개선] 이름 인식 오류 방지 및 인코딩 다각화
-def safe_load_csv(file):
-    encodings = ['utf-8-sig', 'cp949', 'utf-8']
-    for enc in encodings:
-        try:
-            content = file.getvalue().decode(enc)
-            # 사용자 파일 구조: 상단 2행 무시 후 3행부터 읽기
-            df = pd.read_csv(io.StringIO(content), skiprows=2)
-            
-            # [6번 해결] 이름 칸에 불필요한 단어가 들어간 행 제거
-            if '이름' in df.columns:
-                df = df[df['이름'].notna() & (df['이름'] != '이름') & (df['이름'] != '수강생 정보지')]
-            
-            # [3번 해결] 불필요한 컬럼 제거 (외부 영향력 등)
-            bad_cols = ['영향력', '외부', 'Unnamed']
-            df = df.loc[:, ~df.columns.str.contains('|'.join(bad_cols), case=False)]
-            
-            return df
-        except:
-            continue
-    return None
+# 2. 사이드바: 모든 입력 기능 통합 (사용자 요구사항 반영)
+with st.sidebar:
+    st.markdown("<p class='header-style'>Input Controls</p>", unsafe_allow_html=True)
+    
+    # 전략 입력란
+    strategy = st.text_area("Analysis Strategy", placeholder="분석 전략을 입력하세요...")
+    
+    # 비디오 링크 입력란
+    video_url = st.text_input("Video URL", placeholder="https://youtube.com/...")
+    
+    # 파일 업로드 (전도사 정보 보존 로직 포함)
+    uploaded_file = st.file_uploader("Upload Student Data (CSV)", type=['csv'])
+    
+    st.divider()
+    run_analysis = st.button("🚀 Generate Analysis", use_container_width=True)
 
-# [4번 해결] 다각도 분석 엔진 (단순 반복이 아닌 정보 스캔)
-def analyze_student_deep(name, df):
-    # 해당 학생의 모든 기록 추출
-    records = df[df['이름'] == name]
-    if records.empty: return "데이터가 부족하여 분석할 수 없습니다."
+# 3. 메인 화면: 결과 대시보드 시각화
+st.title("📊 Analysis Result Dashboard")
+
+if run_analysis:
+    col1, col2 = st.columns([1, 1])
     
-    # 1. 환경 분석: 직업/주소/종교 정보 스캔
-    job = records['직업/학교'].iloc[0] if '직업/학교' in records.columns else "미상"
-    religion = records['종교'].iloc[0] if '종교' in records.columns else "미상"
-    
-    # 2. 심리 및 태도 스캔 (상담 일지 요약 - 예시 로직)
-    # 실제 파일 구조상 하단에 깔린 상담 내용을 스캔하여 키워드 추출
-    
-    analysis_text = f"**[환경 및 성향]** {name} 님은 현재 {job}에 종사하며, {religion} 배경을 가지고 있습니다. "
-    analysis_text += "\n\n**[다각도 대응 전략]** "
-    if "무신앙" in str(religion):
-        analysis_text += "종교적 거부감은 낮으나 성경의 역사적 사실성을 강조하는 접근이 필요합니다."
-    else:
-        analysis_text += "기존 신앙관과의 충돌 지점을 파악하여 점진적인 교리가 필요합니다."
+    # [왼쪽 영역] 비디오 및 데이터 요약
+    with col1:
+        if video_url:
+            st.markdown("<div class='stat-card'>", unsafe_allow_html=True)
+            st.video(video_url)
+            st.caption("참조 비디오 데이터")
+            st.markdown("</div>", unsafe_allow_html=True)
         
-    return analysis_text
+        if strategy:
+            st.markdown("<div class='stat-card'>", unsafe_allow_html=True)
+            st.subheader("Target Strategy")
+            st.info(strategy)
+            st.markdown("</div>", unsafe_allow_html=True)
 
-# 메인 UI
-st.title("📋 통합 수강생 관리 및 정밀 분석")
+    # [오른쪽 영역] 데이터 분석 및 전도사 정보 (무결성 유지)
+    with col2:
+        if uploaded_file:
+            # 전도사 정보가 담긴 상단부와 하단 데이터를 분리해서 인식
+            raw_content = uploaded_file.getvalue().decode('utf-8-sig')
+            
+            # 전도사/교사 정보만 따로 추출하는 정밀 스캔
+            lines = raw_content.split('\n')
+            staff_info = [line for line in lines[:10] if any(k in line for k in ['전도사', '교사', '인도자'])]
+            
+            st.markdown("<div class='stat-card'>", unsafe_allow_html=True)
+            st.subheader("Staff in Charge")
+            if staff_info:
+                for staff in staff_info:
+                    clean_staff = staff.replace(',', ' ').strip()
+                    if clean_staff: st.write(f"👤 {clean_staff}")
+            else:
+                st.warning("전도사 정보 필드를 스캔 중입니다.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
-uploaded_files = st.file_uploader("CSV 파일을 업로드하세요", accept_multiple_files=True)
-
-if uploaded_files:
-    data_list = []
-    for f in uploaded_files:
-        temp_df = safe_load_csv(f)
-        if temp_df is not None:
-            # 파일명에서 담당자 추출 로직 (누락 방지)
-            temp_df['관리파일'] = f.name
-            data_list.append(temp_df)
-    
-    if data_list:
-        main_df = pd.concat(data_list, ignore_index=True)
-        
-        # [5번 해결] 디자인 개선: 컬럼 레이아웃 최적화
-        col_list, col_detail = st.columns([1, 2])
-        
-        with col_list:
-            st.subheader("👥 수강생 명단")
-            # 이름 중복 제거 후 리스트화
-            names = main_df['이름'].dropna().unique().tolist()
-            selected_name = st.radio("상세 분석할 학생 선택", names)
-            
-        with col_detail:
-            st.subheader(f"🔍 {selected_name} 정밀 분석 보고서")
-            
-            # [4번] 정보 스캔 및 분석 결과 출력
-            analysis_result = analyze_student_deep(selected_name, main_df)
-            st.markdown(f"<div class='analysis-card'>{analysis_result}</div>", unsafe_allow_html=True)
-            
-            # 해당 학생의 로우 데이터(상담 이력 등)를 하단에 배치
-            st.markdown("#### 📅 상세 활동 이력")
-            st.table(main_df[main_df['이름'] == selected_name].head(10))
+            # 수강생 상세 명단 분석
+            try:
+                # '이름' 컬럼을 찾아 데이터 시작점 포착
+                df = pd.read_csv(io.StringIO(raw_content), skiprows=2) # 실제 구조에 맞춰 조정
+                st.markdown("<div class='stat-card'>", unsafe_allow_html=True)
+                st.subheader("Student Intelligence")
+                st.dataframe(df.head(10), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            except:
+                st.error("데이터 구조를 분석하는 데 실패했습니다.")
 
 else:
-    st.info("좌측 상단에서 파일을 업로드하면 분석이 시작됩니다.")
+    # 초기 대기 화면 (Aesthetic Design)
+    st.markdown("""
+        <div style='text-align: center; padding: 100px;'>
+            <h2 style='color: #BDC3C7;'>준비된 파일과 전략을 입력하고<br>'Generate Analysis' 버튼을 눌러주세요.</h2>
+        </div>
+    """, unsafe_allow_html=True)
