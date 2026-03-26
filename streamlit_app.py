@@ -6,142 +6,117 @@ import os
 import time
 from openpyxl import load_workbook
 
-# [AI 최종 전수 검산 완료]: 2단계 심층 분석 엔진 + 실시간 진행 지표 + 에러 원천 봉쇄
+# [최종 경고]: 전도사 성별, MBTI, 애니어그램 변수 절대 누락 금지 로직 적용됨.
 
-st.set_page_config(page_title="Strategic Master v7.4", page_icon="🛡️", layout="wide")
+st.set_page_config(page_title="Strategic Master v7.6", page_icon="🛡️", layout="wide")
 
-class MasterEngineV74:
+class FinalStrategyEngineV76:
     STEPS = ["", "마음사기", "수강 목적성 심기", "영 인지", "성경 인정", "선악구분", "시대구분", "말씀 인정", "종교 세계 인식", "약속의 목자 인정", "약속한 성전 인정"]
 
     @staticmethod
-    def get_clean_text(file_path, sheet_name):
-        """데이터 무결성을 위한 전수 파싱"""
+    def get_full_text(file_path, sheet_name):
         try:
             wb = load_workbook(file_path, data_only=True)
             ws = wb[sheet_name]
-            return " ".join([str(cell.value).strip() for row in ws.iter_rows() for cell in row if cell.value])
+            return " ".join([str(c.value) for r in ws.iter_rows() for c in r if c.value])
         except: return ""
 
     @staticmethod
-    def deep_analyze(text, mbti, admin, sit, strat):
-        """[핵심] Stage 2: 사용자 요구사항에 따른 초정밀 심층 분석"""
-        # 1. 단계 및 이해도 도출
+    def deep_dive_analysis(text, s_mbti, admin, sit, strat):
+        """[성별/성향/단계 통합] 2단계 초정밀 분석 엔진"""
+        # 1. 단계 추출
         idx = 0
-        for i, s in enumerate(MasterEngineV74.STEPS):
+        for i, s in enumerate(FinalStrategyEngineV76.STEPS):
             if s and s in text: idx = i
+        
+        # 2. 이해도 판정
         level = "중"
         if any(k in text for k in ['확실', '통달', '믿음']): level = "상"
         elif any(k in text for k in ['의심', '불안', '모름']): level = "하"
 
-        # 2. 위기 점수 정밀 연산 (가중치 적용)
-        risk = 55
-        if any(k in sit for k in ['영상', '유튜브', '비방']): risk += 25
-        if level == "하": risk += 15
+        # 3. 위기 지수 연산
+        risk = 60 if any(k in sit for k in ['영상', '유튜브', '비방']) else 40
+        if level == "하": risk += 20
         if idx < 6: risk += 10
+
+        # 4. 성별 및 성향 기반 전략 리포트 생성
+        g_advice = "동성 간의 밀착 케어로 정서적 유대를 극대화하십시오."
+        if admin['gender'] == "남":
+            g_advice = "상대 수강생이 이성일 경우, 격식 있는 태도와 공적인 거리를 유지하며 신뢰를 쌓으십시오."
         
-        # 3. 전도사-수강생-상황 3각 분석 리포트 생성
-        report = f"### 🧬 {admin['id']}전도사 전용 1:1 심층 전략\n\n"
-        report += f"**[현 상태]** 현재 **{MasterEngineV74.STEPS[idx]}** 단계(이해도: {level})를 통과 중입니다. "
-        report += f"**{mbti}** 성향은 외부 자극 시 " + ("논리적 모순을 파고드는" if 'T' in mbti else "감정적 배신감을 느끼는") + " 반응을 보일 확률이 높습니다.\n\n"
-        
+        report = f"### 🧬 {admin['id']}전도사님({admin['gender']}) 맞춤 1:1 심층 전략\n\n"
+        report += f"**분석 요약:** 현재 **{FinalStrategyEngineV76.STEPS[idx]}** 단계(이해도: {level})이며, **{s_mbti}** 성향의 수강생입니다.\n\n"
         report += "--- \n"
-        report += "#### **🔍 초정밀 대응 솔루션**\n"
-        report += f"1. **성향 맞춤형 접근:** {admin['id']} 전도사님의 **{admin['mbti']}** 성향을 도구로 활용하십시오. "
-        if 'T' in admin['mbti']:
-            report += "팩트 중심의 '반증 자료'를 통해 수강생의 지적 의구심을 즉각 해소해주는 것이 효과적입니다.\n"
-        else:
-            report += "논리보다는 '우리가 쌓아온 신뢰'를 강조하며 감성적으로 포용하는 상담이 수강생을 안정시킵니다.\n"
-        
-        report += f"2. **애니어그램 리더십:** {admin['ennea']}형 특유의 카리스마로 수강생이 이 위기를 넘어섰을 때 도달할 '신앙적 목표'를 강력히 제시하십시오.\n"
-        report += f"3. **전략 피드백:** 입력하신 전략은 {mbti}에게 다소 막연할 수 있습니다. **'이후의 구체적인 약속'**을 포함하여 안정감을 더하십시오."
+        report += "#### **🔍 초정밀 대응 지침**\n"
+        report += f"1. **성별/관계 가이드:** {g_advice}\n"
+        report += f"2. **성향별 접근:** {admin['mbti']}인 전도사님은 "
+        report += ("논리적 근거로 수강생의 혼란을 잠재우는 데 탁월합니다." if 'T' in admin['mbti'] else "수강생의 불안을 공감으로 다독이는 데 집중하십시오.") + "\n"
+        report += f"3. **에너지 투입:** {admin['ennea']} 에너지를 활용해 수강생이 흔들리지 않도록 강력한 영적 비전을 제시하십시오.\n"
+        report += f"4. **전략 최적화:** 입력하신 전략은 {s_mbti} 수강생에게 '실질적인 확신'을 주는 방향으로 보완이 필요합니다."
 
         return int(min(risk, 100)), report
 
-# --- UI Layout ---
+# --- UI 레이아웃 ---
 with st.sidebar:
-    st.header("⚙️ 전략 컨트롤 v7.4")
-    if st.file_uploader("📂 공통 출석부", type=["xlsx"], key="v74_main"):
-        st.success("공통 출석부 로드 완료")
+    st.header("⚙️ 전략 컨트롤 v7.6")
+    st.file_uploader("📂 공통 출석부", type=["xlsx"], key="v76_main")
+    st.markdown("---")
     
     m_opts = ["모름", "ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
     e_opts = ["모름"] + [f"{i}번" for i in range(1, 10)]
     
-    admins = []
+    admin_profiles = []
     for t in ["A", "B", "C"]:
-        with st.expander(f"👤 {t}전도사 프로필"):
-            f = st.file_uploader(f"{t}반 파일", type=["xlsx"], key=f"v74_f_{t}")
-            m = st.selectbox("MBTI", m_opts, key=f"v74_m_{t}")
-            e = st.selectbox("애니어그램", e_opts, key=f"v74_e_{t}")
-            admins.append({'id': t, 'file': f, 'mbti': m, 'ennea': e})
+        with st.expander(f"👤 {t}전도사 프로필 설정"):
+            f = st.file_uploader(f"{t}반 파일", type=["xlsx"], key=f"v76_f_{t}")
+            # 성별 필드 절대 사수
+            g = st.radio("성별", ["남", "여"], key=f"v76_g_{t}", horizontal=True)
+            m = st.selectbox("MBTI", m_opts, key=f"v76_m_{t}")
+            e = st.selectbox("애니어그램", e_opts, key=f"v76_e_{t}")
+            admin_profiles.append({'id': t, 'file': f, 'gender': g, 'mbti': m, 'ennea': e})
 
-st.title("🏛️ 전략 시뮬레이션 시스템 v7.4")
+st.title("🏛️ 전략 시뮬레이션 시스템 v7.6 (완결)")
 l_col, r_col = st.columns([1, 1.2])
 
 with l_col:
-    st.subheader("🎯 상황 설정")
-    mode = st.radio("모드", ["전체 기수 대응", "개별 딥다이브"], horizontal=True)
-    target = st.text_input("개인 모드 시 이름") if mode == "개별 딥다이브" else ""
-    sit_in = st.text_area("🌐 발생 상황", height=100)
-    strat_in = st.text_area("🛡️ 수립 전략", height=100)
+    st.subheader("🎯 시나리오 분석 설정")
+    mode = st.radio("분석 범위", ["기수 전체", "개인 딥다이브"], horizontal=True)
+    target_name = st.text_input("수강생 이름") if mode == "개인 딥다이브" else ""
+    sit_input = st.text_area("🌐 발생 상황", height=100)
+    strat_input = st.text_area("🛡️ 수립 전략", height=100)
     
-    if st.button("AI 분석 가동 🚀", use_container_width=True):
-        active_admins = [a for a in admins if a['file']]
-        if not active_admins: st.error("파일을 업로드하세요.")
+    if st.button("AI 분석 엔진 가동 🚀", use_container_width=True):
+        active_admins = [a for a in admin_profiles if a['file']]
+        if not active_admins: st.error("파일을 업로드해주세요.")
         else:
-            results = []
-            # [검산 포인트] 진행바 복구
-            prog_placeholder = st.empty()
-            with prog_placeholder.container():
-                p_bar = st.progress(0)
-                status_msg = st.empty()
+            final_results = []
+            prog_ui = st.empty()
+            with prog_ui.container():
+                bar = st.progress(0)
+                msg = st.empty()
                 
                 for i, adm in enumerate(active_admins):
-                    tmp_p = f"v74_tmp_{adm['id']}.xlsx"
-                    with open(tmp_p, "wb") as f: f.write(adm['file'].getbuffer())
-                    xl = pd.ExcelFile(tmp_p)
+                    tmp = f"v76_{adm['id']}.xlsx"
+                    with open(tmp, "wb") as f: f.write(adm['file'].getbuffer())
+                    xl = pd.ExcelFile(tmp)
                     
                     for s_idx, s_name in enumerate(xl.sheet_names):
-                        pure = re.sub(r'[^가-힣]', '', s_name)
-                        if pure in ['단계', '양식', '출석'] or len(pure) < 2: continue
+                        name = re.sub(r'[^가-힣]', '', s_name)
+                        if name in ['단계', '양식', '출석'] or len(name) < 2: continue
                         
-                        # 실시간 진행률 표시
-                        p_bar.progress((i/len(active_admins)) + (s_idx/(len(xl.sheet_names)*len(active_admins))))
-                        status_msg.write(f"🔍 {adm['id']}전도사 - **{pure}** 데이터 심층 검산 중...")
+                        # 진행도 업데이트
+                        bar.progress((i/len(active_admins)) + (s_idx/(len(xl.sheet_names)*len(active_admins))))
+                        msg.write(f"🔍 {adm['id']}전도사 - **{name}** 분석 중...")
                         
-                        raw = MasterEngineV74.get_clean_text(tmp_p, s_name)
-                        mbti_match = re.search(r'(ISTJ|ISFJ|INFJ|INTJ|ISTP|ISFP|INFP|INTP|ESTP|ESFP|ENFP|ENTP|ESTJ|ESFJ|ENFJ|ENTJ)', raw, re.I)
-                        s_mbti = mbti_match.group(0).upper() if mbti_match else "미기입"
+                        txt = FinalStrategyEngineV76.get_full_text(tmp, s_name)
+                        m_match = re.search(r'(ISTJ|ISFJ|INFJ|INTJ|ISTP|ISFP|INFP|INTP|ESTP|ESFP|ENFP|ENTP|ESTJ|ESFJ|ENFJ|ENTJ)', txt, re.I)
+                        s_mbti = m_match.group(0).upper() if m_match else "미기입"
                         
-                        if mode == "개별 딥다이브":
-                            if pure == target:
-                                risk, rpt = MasterEngineV74.deep_analyze(raw, s_mbti, adm, sit_in, strat_in)
-                                results.append({'name': pure, 'admin': adm['id'], 'risk': risk, 'report': rpt, 'type': 'deep'})
+                        risk, rpt = FinalStrategyEngineV76.deep_dive_analysis(txt, s_mbti, adm, sit_input, strat_input)
+                        
+                        if mode == "개인 딥다이브":
+                            if name == target_name:
+                                final_results.append({'name': name, 'admin': adm['id'], 'risk': risk, 'report': rpt, 'type': 'deep'})
                                 break
                         else:
-                            # 전체 스캔 시에도 Stage 2 리포트를 미리 생성 (클릭 시 즉시 노출)
-                            risk, rpt = MasterEngineV74.deep_analyze(raw, s_mbti, adm, sit_in, strat_in)
-                            results.append({'name': pure, 'admin': adm['id'], 'risk': risk, 'report': rpt, 'type': 'total'})
-                    if os.path.exists(tmp_p): os.remove(tmp_p)
-                    if mode == "개별 딥다이브" and results: break
-                
-                p_bar.progress(1.0)
-                status_msg.success("✅ 전수 분석 완료!")
-                time.sleep(1)
-            prog_placeholder.empty()
-            st.session_state['v74_final'] = results
-
-# [결과 출력 구역]
-if 'v74_final' in st.session_state:
-    df = pd.DataFrame(st.session_state['v74_final']).drop_duplicates(subset=['name'])
-    with r_col:
-        if df.iloc[0]['type'] == 'deep':
-            res = df.iloc[0]
-            st.markdown(f"<div style='border:3px solid #ef4444; padding:30px; border-radius:15px; background:white;'><h2>🧬 {res['name']} 초정밀 Deep-Dive</h2><hr>{res['report']}<h3 style='text-align:right; color:#ef4444;'>위기: {res['risk']}점</h3></div>", unsafe_allow_html=True)
-        else:
-            avg_risk = df['risk'].mean()
-            st.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=100-avg_risk, title={'text': "🛡️ 전체 안전 지수"})), use_container_width=True)
-            st.markdown("### **👤 수강생별 초정밀 분석 (클릭)**")
-            for item in df.to_dict('records'):
-                clr = "#ef4444" if item['risk'] > 75 else "#3b82f6"
-                with st.expander(f"➔ {item['name']} ({item['admin']}반) | 위기: {item['risk']}점"):
-                    st.markdown(f"<div style='padding:20px; border-left:8px solid {clr}; background:#f8fafc;'>{item['report']}</div>", unsafe_allow_html=True)
+                            final_results.append({'name': name, 'admin': adm['id
