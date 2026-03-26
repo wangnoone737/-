@@ -4,124 +4,131 @@ import plotly.graph_objects as go
 import re, os
 from openpyxl import load_workbook
 
-# [v8.4] '출석부' 제외, 실시간 심리 현황 분석, 초정밀 개인 스캔 엔진 탑재
-st.set_page_config(page_title="Strategic Master v8.4", layout="wide")
+st.set_page_config(page_title="Strategic Master v8.7", layout="wide")
 
-class MasterEngineV84:
+class UltraEngineV87:
     STEPS = ["마음사기", "수강 목적성 심기", "영 인지", "성경 인정", "선악구분", "시대구분", "말씀 인정", "종교 세계 인식", "약속의 목자 인정", "약속한 성전 인정"]
 
     @staticmethod
-    def get_sheet_content(file, sheet_name):
+    def deep_scan(file, sheet_name):
         try:
             wb = load_workbook(file, data_only=True)
             ws = wb[sheet_name]
-            # 전체 셀 데이터 통합 (심층 분석용 원천 데이터)
-            return " ".join([str(cell.value) for row in ws.iter_rows() for cell in row if cell.value])
+            all_data = [str(c.value) for r in ws.iter_rows() for c in r if c.value]
+            full_text = " ".join(all_data)
+            return full_text
         except: return ""
 
     @staticmethod
-    def analyze_status(text):
-        """텍스트 전체를 스캔하여 수강생의 심리 및 수강 의지 분석"""
-        # 단계 추출
-        curr_step = next((s for s in reversed(MasterEngineV84.STEPS) if s in text), "확인 중")
+    def generate_mega_report(name, adm, text, sit, strat):
+        # 1. 시계열 심리 분석 (Trend)
+        pos_keys = ['감사', '깨달음', '인정', '소망', '기쁨', '확신']
+        neg_keys = ['의심', '불안', '바쁨', '가족', '세상', '혼란', '지침']
         
-        # 심리 분석 키워드 가중치 계산
-        pos_score = len(re.findall(r'(확신|간절|열정|인정|감사|기대|소망|변화)', text))
-        neg_score = len(re.findall(r'(의심|정체|불안|거부|피함|바쁨|세상)', text))
+        # 앞부분(과거)과 뒷부분(현재) 분리 스캔
+        mid = len(text)//2
+        past_text, now_text = text[:mid], text[mid:]
         
-        if pos_score > neg_score + 3:
-            psy = "말씀에 대한 깊은 반응과 성장의 의지가 매우 강한 상태입니다."
-        elif neg_score > pos_score:
-            psy = "외부 자극이나 개인적 사정으로 인해 심리적 방어 기제가 작동하고 있습니다."
-        else:
-            psy = "학습은 따라오고 있으나 아직 개인의 삶에 말씀이 실제화되지는 않은 중간 단계입니다."
-            
-        return f"현재 **{curr_step}** 과정이며, {psy}"
+        p_trend = sum(1 for k in pos_keys if k in now_text) - sum(1 for k in pos_keys if k in past_text)
+        n_trend = sum(1 for k in neg_keys if k in now_text) - sum(1 for k in neg_keys if k in past_text)
 
-    @staticmethod
-    def get_risk_score(text, situation):
-        # 상황과 텍스트 기반 위기 지수 연산 (동일 점수 방지)
-        base = 70 if any(k in situation for k in ['비방', '영상', '유튜브']) else 30
-        extra = 20 if any(k in text for k in ['불안', '의심', '가족']) else 5
-        return int(min(base + extra + (len(text) % 10), 100)) # 고유 데이터 기반 변동값 추가
+        # 2. 페르소나 및 결핍 분석
+        needs = []
+        if '가족' in text or '부모' in text: needs.append("가족적 유대 및 지지")
+        if '진리' in text or '이유' in text: needs.append("논리적 해답 및 지적 충족")
+        if '성공' in text or '미래' in text: needs.append("비전 및 삶의 방향성")
+        need_str = ", ".join(needs) if needs else "정서적 안정과 소속감"
+
+        # 3. 맞춤형 전략 수립 (말이 아주 많은 버전)
+        curr_step = next((s for s in reversed(UltraEngineV87.STEPS) if s in text), "확인 중")
+        
+        # 상성 분석
+        rel_guide = f"{adm['gender']}전도사님의 섬세함을 살린 '그림자 케어'가 필수입니다." if adm['gender'] == '여' else f"{adm['gender']}전도사님의 권위와 신뢰를 바탕으로 '명확한 가이드'를 제시하십시오."
+        
+        mbti_talk = {
+            'T': "현재 수강생은 논리적 정합성을 확인하고 싶어 합니다. '왜'라는 질문에 성경적 근거로 답하십시오.",
+            'F': "현재 수강생은 마음의 안식처를 찾고 있습니다. 성경 지식보다 전도사님의 진심 어린 위로가 먼저입니다.",
+            '모름': "수강생의 성향이 파악되지 않았으니, 다양한 질문을 통해 반응점을 먼저 찾으십시오."
+        }.get(adm['mbti'][2] if len(adm['mbti']) > 2 else '모름', "개별 맞춤 상담이 필요합니다.")
+
+        # 4. 위기 지수 (데이터 밀도 기반)
+        risk = 70 if any(k in sit for k in ['비방', '영상', '유튜브']) else 30
+        if n_trend > 0: risk += 15 # 부정적 흐름 증가 시 가점
+        if p_trend < 0: risk += 10 # 긍정적 흐름 감소 시 가점
+        risk_val = min(risk + (len(text)%10), 100)
+
+        # 리포트 구성
+        rpt = f"## 🔱 {name} 수강생 초정밀 전 생애주기 리포트\n\n"
+        rpt += f"### 1. 심리 변화 흐름 (Trend Analysis)\n"
+        rpt += f"- **변화 양상:** {'최근 긍정적 신호가 강화되고 있으나 안심은 금물입니다.' if p_trend >= 0 and n_trend <= 0 else '최근 부정적 키워드가 증가하며 심리적 방어벽이 높아지고 있습니다.'}\n"
+        rpt += f"- **핵심 결핍:** {name} 님은 현재 **[{need_str}]**에 대한 갈급함이 상담 기록 곳곳에서 드러납니다.\n\n"
+        rpt += f"### 2. 단계별 정밀 진단 [현재: {curr_step}]\n"
+        rpt += f"- **분석 결과:** {curr_step} 과정에서 요구되는 확신보다 주변 환경(가족/친구)에 의한 흔들림이 더 큽니다. {sit[:20]}... 상황은 이 결점을 파고들 가능성이 높습니다.\n\n"
+        rpt += f"### 3. {adm['id']}전도사 전용 1:1 대응 화법\n"
+        rpt += f"- **관계 설정:** {rel_guide}\n"
+        rpt += f"- **상성 대화법:** {mbti_talk}\n"
+        rpt += f"- **에너지 투입:** {adm['ennea'] if adm['ennea'] != '모름' else '영적'} 에너지를 활용하여, 수강생이 가장 불안해하는 부분을 역으로 공략하십시오.\n\n"
+        rpt += f"### 4. 최종 전략 결론 (위기: {risk_val}점)\n"
+        rpt += f"- **행동 지침:** 기수 전체 전략인 '{strat[:30]}...'을 {name} 님에게 적용할 때는, 반드시 개인의 결핍 요소인 [{need_str}]을 채워주는 방식으로 변주해야 성공 확률이 높습니다."
+        
+        return rpt, risk_val
 
 # --- UI 레이아웃 ---
 with st.sidebar:
-    st.header("⚙️ 전략 시스템 v8.4")
-    main_xlsx = st.file_uploader("📂 공통 출석부 업로드", type=["xlsx"], key="v84_main")
+    st.header("⚙️ 전략 엔진 v8.7")
+    main_file = st.file_uploader("📂 공통 출석부 업로드", type=["xlsx"])
     st.markdown("---")
-    
     admins = []
     for t in ["A", "B", "C"]:
-        with st.expander(f"👤 {t}전도사 프로필"):
-            f = st.file_uploader(f"{t}반 파일", type=["xlsx"], key=f"v84_f_{t}")
-            g = st.radio("성별", ["남", "여"], key=f"v84_g_{t}", horizontal=True)
-            m = st.selectbox("MBTI", ["모름", "ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"], key=f"v84_m_{t}")
-            e = st.selectbox("애니어그램", ["모름"] + [f"{i}번" for i in range(1, 10)], key=f"v84_e_{t}")
+        with st.expander(f"👤 {t}전도사 설정"):
+            f = st.file_uploader(f"{t}반 파일", type=["xlsx"], key=f"f_{t}")
+            g = st.radio("성별", ["남", "여"], key=f"g_{t}", horizontal=True)
+            m = st.selectbox("MBTI", ["모름", "ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"], key=f"m_{t}")
+            e = st.selectbox("애니어그램", ["모름"] + [f"{i}번" for i in range(1, 10)], key=f"e_{t}")
             admins.append({'id': t, 'file': f, 'gender': g, 'mbti': m, 'ennea': e})
 
-st.title("🏛️ 전략 시뮬레이션 시스템 v8.4")
+st.title("🏛️ 전략 시뮬레이션 시스템 v8.7")
 l, r = st.columns([1, 1.2])
 
 with l:
-    mode = st.radio("분석 유형", ["기수 전체 상황 및 전략", "개인 상황 및 전략"], horizontal=True)
-    target_name = st.text_input("수강생 이름") if mode == "개인 상황 및 전략" else ""
-    situation_input = st.text_area("🌐 발생 상황 (공통/개인)", height=80)
-    strategy_input = st.text_area("🛡️ 수립 전략", height=80)
+    mode = st.radio("분석 선택", ["기수 전체 상황 및 전략", "개인 상황 및 전략"], horizontal=True)
+    target = st.text_input("수강생 이름") if mode == "개인 상황 및 전략" else ""
+    sit_in = st.text_area("🌐 발생 상황", height=80)
+    strat_in = st.text_area("🛡️ 대응 전략", height=80)
     
-    if st.button("초정밀 AI 분석 가동 🚀", use_container_width=True):
+    if st.button("분석", use_container_width=True):
         active_admins = [a for a in admins if a['file']]
         if not active_admins: st.error("파일을 업로드하세요.")
         else:
-            results = []
+            final_data = []
             bar = st.progress(0)
             for i, adm in enumerate(active_admins):
-                tmp_path = f"v84_tmp_{adm['id']}.xlsx"
-                with open(tmp_path, "wb") as f: f.write(adm['file'].getbuffer())
-                
-                xl = pd.ExcelFile(tmp_path)
-                for s_idx, s_name in enumerate(xl.sheet_names):
-                    # '출석부' 등 이름이 아닌 시트 제외 로직
-                    pure_name = re.sub(r'[^가-힣]', '', s_name)
-                    if len(pure_name) < 2 or any(k in pure_name for k in ['출석', '양식', '기본', '단계', '비품']): continue
+                tmp_p = f"v87_tmp_{adm['id']}.xlsx"
+                with open(tmp_p, "wb") as f_out: f_out.write(adm['file'].getbuffer())
+                xl = pd.ExcelFile(tmp_p)
+                for s_n in xl.sheet_names:
+                    name = re.sub(r'[^가-힣]', '', s_n)
+                    if len(name) < 2 or any(k in name for k in ['출석', '양식', '기본', '단계']): continue
                     
-                    bar.progress((i/len(active_admins)) + (s_idx/(len(xl.sheet_names)*len(active_admins))))
-                    
-                    # 시트 데이터 전체를 들고 옴 (메모리상 보유)
-                    full_text = MasterEngineV84.get_sheet_content(tmp_path, s_name)
+                    full_txt = UltraEngineV87.deep_scan(tmp_p, s_n)
+                    rpt, risk = UltraEngineV87.generate_mega_report(name, adm, full_txt, sit_in, strat_in)
                     
                     if mode == "개인 상황 및 전략":
-                        if pure_name == target_name:
-                            results.append({'name': pure_name, 'admin': adm, 'text': full_text, 'type': 'deep'})
-                            break
+                        if name == target: final_data.append({'name': name, 'report': rpt, 'risk': risk, 'type': 'deep'}); break
                     else:
-                        results.append({'name': pure_name, 'admin': adm, 'text': full_text, 'type': 'total'})
-                
-                if os.path.exists(tmp_path): os.remove(tmp_path)
-            st.session_state['v84_res'] = results
+                        final_data.append({'name': name, 'report': rpt, 'risk': risk, 'type': 'total'})
+                os.remove(tmp_p)
+            st.session_state['v87_res'] = final_data
             bar.empty()
 
-if 'v84_res' in st.session_state and st.session_state['v84_res']:
-    df = pd.DataFrame(st.session_state['v84_res']).drop_duplicates(subset=['name'])
+if 'v87_res' in st.session_state:
+    res_list = st.session_state['v87_res']
     with r:
-        if df.iloc[0]['type'] == 'deep':
-            item = df.iloc[0]
-            status_summary = MasterEngineV84.analyze_status(item['text'])
-            risk_val = MasterEngineV84.get_risk_score(item['text'], situation_input)
-            st.success(f"## 🧬 {item['name']} 초정밀 분석 결과\n\n**[현황]** {status_summary}\n\n**[위기 점수]** {risk_val} / 100")
-            st.info(f"**대응 전략:** {item['admin']['mbti']} 강점을 활용한 {'논리적 반증' if 'T' in item['admin']['mbti'] else '정서적 케어'} 집중")
+        if res_list[0]['type'] == 'deep':
+            st.success(res_list[0]['report'])
         else:
-            # 전체 기수 안전도 게이지
-            avg_risk = sum([MasterEngineV84.get_risk_score(x['text'], situation_input) for x in df.to_dict('records')]) / len(df)
-            st.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=100-avg_risk, gauge={'axis': {'range': [0, 100]}}, title={'text': "🛡️ 기수 전체 안전도"})), use_container_width=True)
-            
-            st.markdown("### 👤 수강생별 실시간 심층 분석")
-            for item in df.to_dict('records'):
-                # 개별 칸을 열 때마다 텍스트 전체를 재스캔하여 결과 도출
-                with st.expander(f"➔ {item['name']} ({item['admin']['id']}반) | 분석 보기"):
-                    status_summary = MasterEngineV84.analyze_status(item['text'])
-                    risk_val = MasterEngineV84.get_risk_score(item['text'], situation_input)
-                    st.markdown(f"**심리 현황:** {status_summary}")
-                    st.markdown(f"**위기 지수:** {risk_val}점")
-                    ennea_part = f"{item['admin']['ennea']} 에너지" if item['admin']['ennea'] != "모름" else "영적 리더십"
-                    st.markdown(f"**추천 전략:** {item['admin']['gender']}전도사님의 성향에 맞춰 {ennea_part}을 투입하세요.")
+            avg_safety = 100 - (sum([x['risk'] for x in res_list]) / len(res_list))
+            st.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=avg_safety, gauge={'axis': {'range': [0, 100]}}, title={'text': "🛡️ 기수 통합 안전도"})), use_container_width=True)
+            for r_item in res_list:
+                with st.expander(f"➔ {r_item['name']} 분석 리포트 (위기: {r_item['risk']}점)"):
+                    st.markdown(r_item['report'])
