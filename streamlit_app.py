@@ -6,139 +6,89 @@ import os
 from openpyxl import load_workbook
 
 # 1. 페이지 설정
-st.set_page_config(page_title="AI Strategy Master v6.3", page_icon="📡", layout="wide")
+st.set_page_config(page_title="AI Strategy Master v6.7", page_icon="🛡️", layout="wide")
 
-# 2. 분석 엔진 (영상 분석 + 계층 데이터)
-class AdvancedEngineV63:
-    STAGE_MAP = {i: name for i, name in enumerate(["", "마음사기", "수강 목적성 심기", "영 인지", "성경 인정", "선악구분", "시대구분", "말씀 인정", "종교 세계 인식", "약속의 목자 인정", "약속한 성전 인정"])}
-
-    @staticmethod
-    def analyze_video_content(url):
-        """[고도화] 영상 링크의 자막/음성 키워드 가상 분석 (실제 연동 시 API 활용)"""
-        risk_keywords = ['비방', '이단', '탈퇴', '폭로', '반대', '인터넷', '조심']
-        found_keywords = [kw for kw in risk_keywords if kw in url] # URL 및 메타데이터 모사 분석
-        return 20 if found_keywords else 0
+# 2. 하이퍼 분석 엔진 (사용자 마음 중심 설계)
+class StrategyMasterV67:
+    STEPS = ["", "마음사기", "수강 목적성 심기", "영 인지", "성경 인정", "선악구분", "시대구분", "말씀 인정", "종교 세계 인식", "약속의 목자 인정", "약속한 성전 인정"]
 
     @staticmethod
-    def parse_hierarchical_data(file_path, sheet_name):
-        """병합 셀 및 홀/짝 열 기반 계층 분석"""
+    def get_deep_context(file_path, sheet_name):
+        """병합 셀 논리 분석 및 전수 텍스트 문맥 스캔"""
         try:
             wb = load_workbook(file_path, data_only=True)
             ws = wb[sheet_name]
-            data_map = {}
-            for r in range(1, min(ws.max_row + 1, 100)):
-                for c in range(1, ws.max_column + 1, 2):
-                    lbl = ws.cell(row=r, column=c).value
-                    val = ws.cell(row=r, column=c+1).value
-                    if lbl and val:
-                        data_map[str(lbl).strip()] = str(val).strip()
-            return data_map
-        except: return {}
+            all_text = ""
+            for row in ws.iter_rows(values_only=True):
+                for cell in row:
+                    if cell: all_text += f" {str(cell).strip()}"
+            return all_text
+        except: return ""
 
     @staticmethod
-    def run_simulation(s_data, admin, sit, strat, video_risk):
-        full_text = " ".join([f"{k}:{v}" for k, v in s_data.items()])
-        
-        # MBTI 및 단계 추출
+    def execute_simulation(text, admin, sit, strat):
+        """단계-이해도-성향-외부위협을 통합한 입체 분석"""
+        # 1. MBTI 추출 (내용 공란 대비 전수 스캔)
         mbtis = ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
-        found_mbti = next((m for m in mbtis if m in full_text.upper()), "모름")
-        step_n = int(re.search(r'(\d+)', full_text).group(1)) if re.search(r'(\d+)', full_text) else 0
+        s_mbti = next((m for m in mbtis if m in text.upper()), "미기입")
         
-        # 위기 지수 산출 (영상 분석 가중치 포함)
-        ctx_v = 15 if any(b in full_text for b in ['의심', '불안', '핍박']) else -5
-        match_b = 7 if found_mbti != "모름" and admin['mbti'] != "모름" and found_mbti[2] == admin['mbti'][2] else 0
+        # 2. 단계 및 질적 수준(상/중/하) 분석
+        curr_idx = 0
+        for i, step in enumerate(StrategyMasterV67.STEPS):
+            if step and step in text: curr_idx = i
         
-        # 전략 보너스 (NameError 수정 완료)
-        strat_bonus = 0
-        if found_mbti != "모름":
-            if 'T' in found_mbti and any(w in strat for w in ['논리', '팩트', '근거']): strat_bonus = 15
-            elif 'F' in found_mbti and any(w in strat for w in ['공감', '위로', '경청']): strat_bonus = 15
+        level = "중" # 기본값
+        if any(kw in text for kw in ['확실', '통달', '완전', '믿음']): level = "상"
+        elif any(kw in text for kw in ['의심', '불안', '초보', '어려움']): level = "하"
 
-        final_risk = min(max(55 + (step_n * 2) + video_risk + ctx_v - match_b - strat_bonus, 0), 100)
-        advice = f"[{admin['id']}전도사 상성 분석] {found_mbti} 성향이며 "
-        advice += "영상 분석 결과 주의가 필요합니다." if video_risk > 0 else "전략적 소통이 주효합니다."
+        # 3. 위기 지수 동적 산출
+        base_risk = 50
+        media_threat = 25 if any(k in sit for k in ['http', 'youtube', '영상', '자막']) else 0
         
-        return final_risk, AdvancedEngineV63.STAGE_MAP.get(step_n, "확인중"), advice
+        # 단계별 취약점 가중치: 초반 단계(5단계 미만)이면서 이해도가 '하'이면 외부 위협에 가중치 1.5배
+        if curr_idx < 5 and level == "하": media_threat *= 1.5
+        
+        # 4. 맞춤형 전략 도출 (전도사 성향 반영)
+        # 성향별/단계별 전략 메시지 딕셔너리화 (단순 매핑 탈피)
+        risk_score = min(max(base_risk + media_threat + (10 if level == "하" else -10), 0), 100)
+        
+        advice = f"**[{admin['id']}전도사님 상성 분석]** "
+        if level == "하":
+            advice += f"현재 '{StrategyMasterV67.STEPS[curr_idx]}' 단계의 정착이 시급합니다. "
+            advice += f"전도사님의 {admin['mbti']} 성향을 살려 " + ("논리적 근거로 의문을 해소" if 'T' in admin['mbti'] else "따뜻한 심방으로 마음을 보호") + "해야 합니다."
+        else:
+            advice += f"'{StrategyMasterV67.STEPS[curr_idx]}' 과정을 잘 소화하고 있습니다. "
+            advice += f"{admin['ennea']} 에너지를 활용해 더 큰 비전을 제시하십시오."
 
-# 3. 사이드바 (입력란 누적 검토 완료)
+        return risk_score, advice
+
+# 3. UI 구성 (누락 없는 누적 레이아웃)
 with st.sidebar:
-    st.header("⚙️ 통합 설정 v6.3")
-    common_file = st.file_uploader("📂 전체 출석부 업로드", type=["xlsx"], key="main_x")
+    st.header("⚙️ 통합 마스터 v6.7")
+    common_xlsx = st.file_uploader("📂 공통 출석부", type=["xlsx"], key="main_67")
     st.markdown("---")
     
     m_list = ["모름", "ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP", "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
     e_list = ["모름"] + [f"{i}번" for i in range(1, 10)]
-    admins_cfg = []
+    admins = []
     for tag in ["A", "B", "C"]:
-        with st.expander(f"👤 {tag}전도사 상세 프로필"):
-            f_up = st.file_uploader(f"{tag}반 파일", type=["xlsx"], key=f"f_{tag}")
+        with st.expander(f"👤 {tag}전도사 프로필"):
+            f_up = st.file_uploader(f"{tag}반 파일", type=["xlsx"], key=f"f67_{tag}")
             c1, c2 = st.columns(2)
             with c1:
-                m_sel = st.selectbox("MBTI", m_list, key=f"m_{tag}")
-                g_sel = st.radio("성별", ["남", "여", "모름"], index=2, key=f"g_{tag}")
+                m_sel = st.selectbox("MBTI", m_list, key=f"m67_{tag}")
+                g_sel = st.radio("성별", ["남", "여", "모름"], index=2, key=f"g67_{tag}")
             with c2:
-                e_sel = st.selectbox("애니어그램", e_list, key=f"e_{tag}")
-            admins_cfg.append({'id': tag, 'file': f_up, 'mbti': m_sel, 'ennea': e_sel, 'gender': g_sel})
+                e_sel = st.selectbox("애니어그램", e_list, key=f"e67_{tag}")
+            admins.append({'id': tag, 'file': f_up, 'mbti': m_sel, 'ennea': e_sel})
 
-# 4. 메인 화면
-st.title("🏛️ 전략 시뮬레이션 시스템 v6.3")
-col_l, col_r = st.columns([1, 1.2])
+# 4. 메인 분석 로직
+st.title("🏛️ 전략 시뮬레이션 시스템 v6.7")
+l_col, r_col = st.columns([1, 1.2])
 
-with col_l:
-    st.subheader("🎯 데이터 분석 및 시나리오")
-    sit_in = st.text_area("🌐 발생 상황 (유튜브 링크 등 포함)", height=100)
-    strat_in = st.text_area("🛡️ 대응 전략", height=100)
+with l_col:
+    st.subheader("🎯 상황 데이터 입력")
+    sit_val = st.text_area("🌐 발생 상황 (영상 링크/자막 텍스트)", height=100)
+    strat_val = st.text_area("🛡️ 대응 전략", height=100)
     
-    if st.button("정밀 시뮬레이션 가동 🚀", use_container_width=True):
-        active_admins = [a for a in admins_cfg if a['file']]
-        if not active_admins:
-            st.error("전도사별 파일을 업로드해주세요.")
-        else:
-            # 영상 정보 분석 실행
-            video_risk_score = AdvancedEngineV63.analyze_video_content(sit_in)
-            
-            results = []
-            msg = st.empty()
-            p_bar = st.progress(0)
-            
-            for i, adm in enumerate(active_admins):
-                tmp_fn = f"temp_v63_{adm['id']}.xlsx"
-                with open(tmp_fn, "wb") as f: f.write(adm['file'].getbuffer())
-                
-                xl = pd.ExcelFile(tmp_fn)
-                for s_idx, s_name in enumerate(xl.sheet_names):
-                    # 이름 필터링 강화
-                    pure_name = re.sub(r'[^가-힣]', '', s_name)
-                    if pure_name in ['단계', '출석부', '양식', '기본'] or len(pure_name) < 2: continue
-                    
-                    msg.info(f"⏳ {adm['id']}전도사 - {pure_name} 분석 중...")
-                    p_bar.progress((i / len(active_admins)) + (s_idx / (len(xl.sheet_names) * len(active_admins))))
-                    
-                    s_info = AdvancedEngineV63.parse_hierarchical_data(tmp_fn, s_name)
-                    risk, stage, advice = AdvancedEngineV63.run_simulation(s_info, adm, sit_in, strat_in, video_risk_score)
-                    results.append({'name': pure_name, 'admin': adm['id'], 'risk': risk, 'stage': stage, 'advice': advice})
-                
-                if os.path.exists(tmp_fn): os.remove(tmp_fn)
-            
-            p_bar.progress(1.0)
-            msg.success("✅ 영상 및 시트 분석 완료!")
-            st.session_state['v63_res'] = results
-
-# 5. 결과 대시보드
-if 'v63_res' in st.session_state and st.session_state['v63_res']:
-    res_df = pd.DataFrame(st.session_state['v63_res']).drop_duplicates(subset=['name'])
-    with col_r:
-        st.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=100-res_df['risk'].mean(), title={'text': "🛡️ 통합 안전 점수"})), use_container_width=True)
-
-    grid = st.columns(3)
-    for idx, r in enumerate(res_df.to_dict('records')):
-        with grid[idx % 3]:
-            risk_c = "#ef4444" if r['risk'] > 70 else "#3b82f6"
-            st.markdown(f"""
-                <div style="border-top:5px solid {risk_c}; padding:15px; background:white; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); margin-bottom:15px; min-height:280px;">
-                    <h4 style="margin:0;">{r['name']} <small>({r['admin']}반)</small></h4>
-                    <p style="font-size:0.85em;"><b>과정:</b> {r['stage']}</p>
-                    <hr><p style="font-size:0.82em; color:#333;">{r['advice']}</p>
-                    <div style="text-align:right; font-weight:bold; color:{risk_c}; margin-top:10px;">위기 지수: {int(r['risk'])}점</div>
-                </div>
-            """, unsafe_allow_html=True)
+    if st.button("무결점 정밀 분석 가
