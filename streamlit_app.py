@@ -28,7 +28,7 @@ class FinalEngineV88:
         pos_hits = re.findall(r'(감사|확신|인정|기쁨|성장|변화)', text)
         neg_hits = re.findall(r'(의심|불안|부모|친구|바쁨|세상|영상|유튜브)', text)
         
-        # 1. 심리 상태 요약 (말이 많고 구체적으로)
+        # 1. 심리 상태 요약
         if len(neg_hits) > len(pos_hits):
             psy_status = f"현재 {name} 님은 신앙적 성장보다는 외부적 환경 요인({', '.join(set(neg_hits[:2]))})에 의한 심리적 간섭이 매우 강하게 작용하고 있습니다."
         elif len(pos_hits) > 0:
@@ -41,7 +41,7 @@ class FinalEngineV88:
         risk_score += (len(neg_hits) * 7) - (len(pos_hits) * 3)
         risk_score = max(10, min(99, risk_score + (len(text) % 5)))
 
-        # 3. 맞춤 전략 (말이 많아진 버전)
+        # 3. 맞춤 전략
         report = f"## 🔱 {name} 수강생 정밀 전략\n\n"
         report += f"### 📌 현 상황 및 데이터 진단\n"
         report += f"- {psy_status}\n"
@@ -88,12 +88,13 @@ with l:
                     name = re.sub(r'[^가-힣]', '', s_n)
                     if len(name) < 2 or any(k in name for k in ['출석', '양식', '기본', '단계']): continue
                     
-                    # 캐싱된 함수로 텍스트 추출
                     full_txt = FinalEngineV88.fast_scan(file_bytes, s_n)
                     rpt, risk = FinalEngineV88.generate_unique_report(name, adm, full_txt, sit_in, strat_in)
                     
                     if mode == "개인 상황 및 전략":
-                        if name == target: final_res.append({'name': name, 'rpt': rpt, 'risk': risk, 'type': 'deep'}); break
+                        if name == target: 
+                            final_res.append({'name': name, 'rpt': rpt, 'risk': risk, 'type': 'deep'})
+                            break
                     else:
                         final_res.append({'name': name, 'rpt': rpt, 'risk': risk, 'type': 'total'})
             
@@ -102,11 +103,17 @@ with l:
 if 'v88_final' in st.session_state:
     data = st.session_state['v88_final']
     with r:
-        if data[0]['type'] == 'deep':
+        if not data:
+            st.warning("데이터를 찾을 수 없습니다.")
+        elif data[0]['type'] == 'deep':
             st.success(data[0]['rpt'])
         else:
             avg_val = sum([x['risk'] for x in data]) / len(data)
-            st.plotly_chart(go.Figure(go.Indicator(mode="gauge+number", value=100-avg_val, gauge={'axis': {'range': [0, 100]}}, title={'text': "🛡️ 전체 안전도"})), use_container_width=True)
+            st.plotly_chart(go.Figure(go.Indicator(
+                mode="gauge+number", 
+                value=100-avg_val, 
+                gauge={'axis': {'range': [0, 100]}, 'bar': {'color': "#1976D2"}}, 
+                title={'text': "🛡️ 전체 안전도"})), use_container_width=True)
             for item in data:
                 with st.expander(f"➔ {item['name']} 분석 리포트 (위기: {item['risk']}점)"):
                     st.markdown(item['rpt'])
